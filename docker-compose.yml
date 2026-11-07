@@ -1,0 +1,21 @@
+version: '3.8'
+name: ketabkhaane_dev
+services:
+  web:
+    container_name: ketabkhaane_dev_web
+    image: "datam_django:kaar2pg"
+    command: /bin/bash -c "cd /home/app && sh entrypoint.sh"
+    ports:
+      - "8022:8000"
+    volumes:
+      - .:/home/app
+
+    networks:
+      ketabkhaane_dev_network:
+
+networks:
+  ketabkhaane_dev_network:
+    external: true
+
+
+
