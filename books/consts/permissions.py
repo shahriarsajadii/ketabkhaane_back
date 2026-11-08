@@ -35,3 +35,15 @@ BookExportPermissions = {
 BookStatsPermissions = {
     "GET": [IsAuthenticated],
 }
+
+BookSeriesListCreatePermissions = {
+    "GET": [IsAuthenticated],
+    "POST": [IsAuthenticated],
+    "DELETE": [IsAuthenticated],  # حذف گروهی
+}
+
+BookSeriesRetrieveUpdateDeletePermissions = {
+    "GET": [IsAuthenticated],
+    "PATCH": [IsAuthenticated],
+    "DELETE": [IsAuthenticated],
+}

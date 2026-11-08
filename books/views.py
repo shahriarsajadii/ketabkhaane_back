@@ -1,5 +1,3 @@
-from urllib.parse import urljoin
-
 from django.db.models import Max
 from django.http import HttpResponse
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -9,8 +7,8 @@ from core.permissions import MethodPermission
 from core.responses import ResponseHelper
 from core.utils import get_object
 from core.views import BulkDeleteMixin, CreateMixin, DeleteMixin, ListMixin, RetrieveMixin, UpdateMixin
-import requests
-from bs4 import BeautifulSoup
+from django.db.models import Count
+
 from .consts import (
     BookExportPermissions,
     BookImagePermissions,
@@ -18,24 +16,65 @@ from .consts import (
     BookImportTemplatePermissions,
     BookListCreatePermissions,
     BookRetrieveUpdateDeletePermissions,
-BookStatsPermissions
-
+    BookSeriesListCreatePermissions,
+    BookSeriesRetrieveUpdateDeletePermissions,
+    BookStatsPermissions,
 )
 from .excel import XLSX_CONTENT_TYPE, build_export, build_template
 from .filters import BookFilter
-from .models import Book, BookCopy
+from .models import Book, BookCopy, BookSeries
 from .queries import book_queryset
 from .serializers import (
     BookBulkDeleteSerializer,
     BookCreateUpdateSerializer,
     BookDetailSerializer,
     BookListSerializer,
+    BookSeriesBulkDeleteSerializer,
+    BookSeriesCreateUpdateSerializer,
+    BookSeriesSerializer,
     ExcelUploadSerializer,
     BookImageSerializer,
 )
 from .services import import_books_from_excel
 
 book_rh = ResponseHelper("کتاب", "کتاب‌ها")
+series_rh = ResponseHelper("مجموعه", "مجموعه‌ها")
+
+
+# =====================================================
+# مجموعه‌ها (مثلا دهخدا)
+# =====================================================
+def _series_queryset():
+    return BookSeries.objects.annotate(books_count=Count("books", distinct=True))
+
+
+class BookSeriesListCreate(ListMixin, CreateMixin, BulkDeleteMixin, APIView):
+    response_helper = series_rh
+    permission_classes = [MethodPermission]
+    permission_by_method = BookSeriesListCreatePermissions
+
+    queryset = _series_queryset()
+    pagination_enabled = False  # برای dropdown فرانت: همه‌ی مجموعه‌ها یکجا
+
+    list_serializer_class = BookSeriesSerializer
+    create_serializer_class = BookSeriesCreateUpdateSerializer
+    bulk_delete_serializer_class = BookSeriesBulkDeleteSerializer
+
+    def _create_save_kwargs(self, request):
+        return {"created_by": request.user, "updated_by": request.user}
+
+
+class BookSeriesRetrieveUpdateDelete(RetrieveMixin, UpdateMixin, DeleteMixin, APIView):
+    response_helper = series_rh
+    permission_classes = [MethodPermission]
+    permission_by_method = BookSeriesRetrieveUpdateDeletePermissions
+
+    queryset = _series_queryset()
+    retrieve_serializer_class = BookSeriesSerializer
+    update_serializer_class = BookSeriesCreateUpdateSerializer
+
+    def get_update_save_kwargs(self, request):
+        return {"updated_by": request.user}
 
 
 # =====================================================
@@ -229,205 +268,3 @@ class BookStats(APIView):
             "years": years,
             "last_updated": last_updated,
         })
-
-
-class SearchBookByShabak(APIView):
-    def post(self, request):
-
-        data = request.data
-
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
-
-        shabak = data.get('shabak')
-
-
-        if not shabak:
-            return book_rh.failed_response(message="وارد کردن شابک الزامی است.")
-
-        url = "https://opac.nlai.ir/opac-prod/search/bibliographicSimpleSearchProcess.do"
-
-        params = {
-            "simpleSearch.value": shabak,
-            "bibliographicLimitQueryBuilder.biblioDocType": "",
-            "simpleSearch.indexFieldId": "221091",
-            "nliHolding": "",
-            "command": "I",
-            "simpleSearch.tokenized": "true",
-            "classType": "0",
-            "pageStatus": "0",
-            "bibliographicLimitQueryBuilder.useDateRange": "null",
-            "bibliographicLimitQueryBuilder.year": "",
-            "documentType": "",
-            "attributes.locale": "fa",
-        }
-        try:
-            response = requests.get(
-                url,
-                params=params,
-                headers=headers,
-                timeout=20
-            )
-
-            print(response.text)
-
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
-            books = []
-            rows = soup.select("#table tr.gridrownormal3")
-
-            for row in rows:
-                title = row.select_one('input[name$=".title"]')
-                author = row.select_one('input[name$=".author"]')
-                publish_date = row.select_one(
-                    'input[name$=".publisherDate"]'
-                )
-                detail_link = row.select_one('a[href*="briefListSearch.do"]')
-                href = detail_link.get("href") if detail_link else None
-
-
-                book = {
-                    "title": title.get("value") if title else None,
-                    "author": author.get("value") if author else None,
-                    "publish_date": (
-                        publish_date.get("value")
-                        if publish_date else None
-                    ),
-                    "detail_url": urljoin(
-                        "https://opac.nlai.ir",
-                        href
-                    ) if href else None
-                }
-
-                books.append(book)
-
-            if not books:
-                return book_rh.not_found_response()
-
-
-            return book_rh.success_get_all_response(data=books)
-        except requests.RequestException as e:
-            return book_rh.failed_response(message="خطا در ارتباط با سامانه کتابخانه ملی", status_code=502)
-
-class GetBookByOpacId(APIView):
-    def post(self, request):
-
-        data = request.data
-
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
-
-        opac_book_id = data.get('opac_book_id')
-
-
-        if not opac_book_id:
-            return book_rh.failed_response(message="وارد کردن آیدی کتاب کتابخانه ملی الزامی است.")
-
-        url = "https://opac.nlai.ir/opac-prod/search/briefListSearch.do"
-
-        params = {
-            "command" : "FULL_VIEW",
-            "id":opac_book_id,
-            "pageStatus" : 0,
-            "sortKeyValue1" : "sortkey_title" ,
-            "sortKeyValue2" :"sortkey_author"
-        }
-        try:
-            response = requests.get(
-                url,
-                params=params,
-                headers=headers,
-                timeout=20
-            )
-
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            first_field = soup.find(
-                lambda tag : tag.name == "td"
-                and "سرشناسه" in tag.text(strip=True)
-            )
-
-            if not first_field:
-                return book_rh.not_found_response()
-
-            table = first_field.find_parent("table")
-
-            if not table:
-                return book_rh.not_found_response()
-
-            field_mapping = {
-                "سرشناسه": "main_entry",
-                "عنوان و نام پدیدآور": "title_and_author",
-                "مشخصات نشر": "publication",
-                "مشخصات ظاهری": "physical_description",
-                "فروست": "series",
-                "شابک": "isbn",
-                "موضوع": "subjects",
-                "شناسه افزوده": "additional_entry",
-                "رده بندی کنگره": "lcc",
-                "رده بندی دیویی": "dewey",
-                "شماره کتابشناسی ملی": "national_bibliography_number",
-                "اطلاعات رکورد کتابشناسی": "bibliographic_record_info",
-            }
-
-            book_data = {}
-
-            for row in table.find_all("tr", recursive=False):
-
-                columns = row.find_all("td", recursive=False)
-
-                if len(columns) < 3:
-                    continue
-
-                field_name = columns[0].get_text(
-                    separator=" ",
-                    strip=True
-                ).replace("\u200f", "").strip()
-
-                # حذف تمام ردیف‌های یادداشت
-                if "یادداشت" in field_name:
-                    continue
-
-                field_value = columns[2].get_text(
-                    separator=" ",
-                    strip=True
-                )
-
-                # حذف کاراکترهای نامرئی و کنترلی
-                field_value = (
-                    field_value
-                    .replace("\u200f", "")
-                    .replace("\u200e", "")
-                    .replace("\u202a", "")
-                    .replace("\u202b", "")
-                    .replace("\u202c", "")
-                    .replace("\u202d", "")
-                    .replace("\u202e", "")
-                    .strip()
-                )
-
-                key = field_mapping.get(field_name)
-
-                if key:
-                    book_data[key] = field_value
-
-            if not book_data:
-                return book_rh.not_found_response()
-
-            return book_rh.success_get_all_response(data=book_data)
-
-
-
-
-        except requests.RequestException:
-            return book_rh.failed_response(
-                message="خطا در ارتباط با سامانه کتابخانه ملی",
-                status_code=502
-            )
-
-

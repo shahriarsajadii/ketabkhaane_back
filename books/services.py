@@ -8,27 +8,71 @@ from core.exceptions import APIError, flatten_errors
 from publishers.models import Publisher
 
 from .excel import ExcelImportError, parse_workbook
-from .models import BookCopy
+from .models import BookCopy, BookSeries
 
 
-def sync_copies(book, addresses):
+def sync_copies(book, copies_data):
     """
-    لیست آدرس‌های کتاب را با لیست جدید هماهنگ می‌کند (به ترتیب):
-    آدرس‌های موجود ویرایش می‌شوند، اضافه‌ها ساخته و مازادها حذف می‌شوند.
+    لیست نسخه‌های کتاب را با لیست جدید هماهنگ می‌کند (به ترتیب):
+    نسخه‌های موجود ویرایش می‌شوند، اضافه‌ها ساخته و مازادها حذف می‌شوند.
+
+    copies_data: لیستی از دیکشنری {"address": "...", "is_loaned": bool, "loaned_to": "..."}
+    (برای سازگاری با ورودی قدیمی، رشته‌ی ساده هم پذیرفته می‌شود و یعنی امانت داده نشده.)
     """
+    normalized = []
+    for item in copies_data:
+        if isinstance(item, dict):
+            normalized.append({
+                "address": item["address"],
+                "is_loaned": bool(item.get("is_loaned", False)),
+                "loaned_to": item.get("loaned_to", "") or "",
+            })
+        else:
+            normalized.append({"address": item, "is_loaned": False, "loaned_to": ""})
+
     existing = list(book.copies.order_by("id"))
 
-    for copy, address in zip(existing, addresses):
-        if copy.address != address:
-            copy.address = address
-            copy.save(update_fields=["address", "updated_at"])
+    for copy, data in zip(existing, normalized):
+        changed_fields = []
+        if copy.address != data["address"]:
+            copy.address = data["address"]
+            changed_fields.append("address")
+        if copy.is_loaned != data["is_loaned"]:
+            copy.is_loaned = data["is_loaned"]
+            changed_fields.append("is_loaned")
+        if copy.loaned_to != data["loaned_to"]:
+            copy.loaned_to = data["loaned_to"]
+            changed_fields.append("loaned_to")
+        if changed_fields:
+            copy.save(update_fields=[*changed_fields, "updated_at"])
 
-    new_addresses = addresses[len(existing):]
-    if new_addresses:
-        BookCopy.objects.bulk_create([BookCopy(book=book, address=a) for a in new_addresses])
+    new_items = normalized[len(existing):]
+    if new_items:
+        BookCopy.objects.bulk_create([
+            BookCopy(
+                book=book,
+                address=item["address"],
+                is_loaned=item["is_loaned"],
+                loaned_to=item["loaned_to"],
+            )
+            for item in new_items
+        ])
 
-    for copy in existing[len(addresses):]:
+    for copy in existing[len(normalized):]:
         copy.delete()
+
+
+def _get_or_create_series(name, user):
+    """مجموعه را با نام (بدون حساسیت به بزرگی/کوچکی حروف) پیدا یا می‌سازد."""
+    name = " ".join((name or "").split())
+    if not name:
+        return None
+    if len(name) > 255:
+        raise serializers.ValidationError({"series": [f"نام مجموعه «{name[:30]}…» بیشتر از ۲۵۵ کاراکتر است."]})
+    series = BookSeries.objects.filter(title__iexact=name).first()
+    if series is None:
+        series = BookSeries.objects.create(title=name, created_by=user, updated_by=user)
+    return series
 
 
 def _get_or_create_categories(names, user):

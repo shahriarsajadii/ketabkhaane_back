@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/publishers/", include("publishers.urls")),
     path("api/authors/", include("authors.urls")),
     path("api/books/", include("books.urls")),
+    path("api/dashboard/", include("dashboard.urls")),
 
 ]
 

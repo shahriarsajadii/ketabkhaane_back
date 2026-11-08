@@ -28,6 +28,10 @@ class BookFilter(django_filters.FilterSet):
     address = django_filters.CharFilter(method="filter_address")
     # یک یا چند دسته (با کاما)، مثلا ?category=1,4  → کتاب‌هایی که در هرکدام باشند
     category = django_filters.CharFilter(method="filter_category")
+    # مجموعه، مثلا ?series=3  → همه‌ی جلدهای آن مجموعه
+    series = django_filters.NumberFilter(field_name="series_id")
+    # فقط نسخه‌های امانت‌داده‌شده: ?is_loaned=true
+    is_loaned = django_filters.BooleanFilter(field_name="copies__is_loaned", distinct=True)
 
     ordering = django_filters.OrderingFilter(
         fields=(
@@ -44,7 +48,7 @@ class BookFilter(django_filters.FilterSet):
         fields = [
             "search", "title", "translator", "publish_year",
             "author", "publisher", "author_name", "publisher_name",
-            "address", "category",
+            "address", "category", "series", "is_loaned",
         ]
 
     def filter_search(self, queryset, name, value):
