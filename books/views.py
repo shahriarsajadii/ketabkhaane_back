@@ -41,9 +41,7 @@ book_rh = ResponseHelper("کتاب", "کتاب‌ها")
 series_rh = ResponseHelper("مجموعه", "مجموعه‌ها")
 
 
-# =====================================================
-# مجموعه‌ها (مثلا دهخدا)
-# =====================================================
+# مجموعه‌ ها
 def _series_queryset():
     return BookSeries.objects.annotate(books_count=Count("books", distinct=True))
 
@@ -54,7 +52,7 @@ class BookSeriesListCreate(ListMixin, CreateMixin, BulkDeleteMixin, APIView):
     permission_by_method = BookSeriesListCreatePermissions
 
     queryset = _series_queryset()
-    pagination_enabled = False  # برای dropdown فرانت: همه‌ی مجموعه‌ها یکجا
+    pagination_enabled = False
 
     list_serializer_class = BookSeriesSerializer
     create_serializer_class = BookSeriesCreateUpdateSerializer
@@ -113,13 +111,11 @@ class BookRetrieveUpdateDelete(RetrieveMixin, UpdateMixin, DeleteMixin, APIView)
         return {"updated_by": request.user}
 
 
-# =====================================================
-# عکس کتاب (multipart)
-# =====================================================
+
 class BookImage(APIView):
     """
-    POST   /api/books/<id>/image/   (multipart: image=<file>)  → آپلود یا جایگزینی
-    DELETE /api/books/<id>/image/                              → حذف عکس
+    POST   /api/books/<id>/image/
+    DELETE /api/books/<id>/image/
     """
     permission_classes = [MethodPermission]
     permission_by_method = BookImagePermissions
@@ -142,7 +138,7 @@ class BookImage(APIView):
         book.updated_by = request.user
         book.save()
 
-        # فایل قبلی را بعد از ذخیره‌ی موفق پاک می‌کنیم
+        # فایل قبلی رو بعد از ذخیره ‌ی موفق پاک می‌ کنیم
         if old_name and old_name != book.image.name:
             book.image.storage.delete(old_name)
 
@@ -172,8 +168,8 @@ class BookImport(APIView):
     POST /api/books/import/            (multipart: file=<xlsx>)
     POST /api/books/import/?skip_invalid=true
 
-    پیش‌فرض: همه یا هیچ (اگر یک ردیف خطا داشت چیزی ثبت نمی‌شود و لیست خطاها برمی‌گردد).
-    با skip_invalid=true ردیف‌های سالم ثبت و ردیف‌های خراب در data.failed گزارش می‌شوند.
+    پیش‌فرض همه یا هیچ عه (اگه یک ردیف خطا داشت چیزی ثبت نمیشه و لیست خطا ها برمیگرده).
+    با skip_invalid=true ردیف‌ های سالم ثبت و ردیف‌ های خراب در data.failed گزارش میشه.
     """
     permission_classes = [MethodPermission]
     permission_by_method = BookImportPermissions
@@ -198,11 +194,12 @@ class BookImport(APIView):
             message = f"{result['created']} کتاب ثبت شد و {len(result['failed'])} ردیف به‌دلیل خطا ثبت نشد."
         else:
             message = f"{result['created']} کتاب با موفقیت ثبت شد."
+
         return book_rh.success(message=message, data=result, status_code=201)
 
 
 class BookImportTemplate(APIView):
-    """GET /api/books/import/template/  → فایل نمونه‌ی اکسل"""
+    """فایل نمونه‌ ی اکسل"""
     permission_classes = [MethodPermission]
     permission_by_method = BookImportTemplatePermissions
 
@@ -213,10 +210,7 @@ class BookImportTemplate(APIView):
 
 
 class BookExport(APIView):
-    """
-    GET /api/books/export/   → خروجی اکسل همه‌ی کتاب‌ها
-    همان فیلترهای لیست کار می‌کنند: ?search=...&category=1,2&address=قفسه ۲&ordering=title
-    """
+
     permission_classes = [MethodPermission]
     permission_by_method = BookExportPermissions
 
@@ -246,7 +240,6 @@ class BookExport(APIView):
 
 
 class BookStats(APIView):
-    """GET /api/books/stats/  → تعداد عنوان‌ها، تعداد کل نسخه‌ها و فیلترهای کمکی"""
     permission_classes = [MethodPermission]
     permission_by_method = BookStatsPermissions
 

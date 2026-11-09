@@ -48,7 +48,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """ویرایش کاربر توسط مدیر (رمز اختیاری است؛ اگر بیاید، تغییر می‌کند)"""
 
     password = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
 
@@ -81,7 +80,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 class MeUpdateSerializer(serializers.ModelSerializer):
-    """کاربر عادی فقط نام خودش را می‌تواند عوض کند"""
 
     class Meta:
         model = User

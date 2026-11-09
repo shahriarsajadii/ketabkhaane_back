@@ -8,14 +8,7 @@ from .consts import DashboardPermissions
 
 dashboard_rh = ResponseHelper("داشبورد")
 
-
 class DashboardBaseView(APIView):
-    """
-    هر ویو فقط build(request, book_ids) را پیاده می‌کند و dict خروجی را برمی‌گرداند.
-    book_ids نتیجه‌ی اعمال فیلترهای سراسری (category/author/publisher/series/year_from/year_to/is_loaned)
-    روی مدل Book است؛ None یعنی هیچ فیلتری ست نشده (= همه‌ی کتاب‌ها). این فیلترها روی همه‌ی
-    کارت‌ها و نمودارهای داشبورد یکسان اعمال می‌شوند تا کراس‌فیلترینگِ شبیه Power BI ممکن باشد.
-    """
     permission_classes = [MethodPermission]
     permission_by_method = DashboardPermissions
 
@@ -31,14 +24,14 @@ class DashboardBaseView(APIView):
 
 
 class DashboardSummary(DashboardBaseView):
-    """GET /api/dashboard/summary/ → کارت‌های بالای صفحه"""
+    """GET /api/dashboard/summary/"""
 
     def build(self, request, book_ids):
         return selectors.summary(book_ids)
 
 
 class BooksByAuthor(DashboardBaseView):
-    """GET /api/dashboard/books-by-author/?limit=10  (limit=all → همه)"""
+    """GET /api/dashboard/books-by-author/?limit=10"""
 
     def build(self, request, book_ids):
         return selectors.books_by_author(selectors.parse_limit(request.query_params.get("limit")), book_ids)
@@ -66,14 +59,12 @@ class BooksByPublisher(DashboardBaseView):
 
 
 class CopiesByShelf(DashboardBaseView):
-    """GET /api/dashboard/copies-by-shelf/ → تعداد نسخه در هر قفسه + داده‌ی Heatmap قفسه×ردیف"""
 
     def build(self, request, book_ids):
         return selectors.copies_by_shelf(book_ids)
 
 
 class BooksByYear(DashboardBaseView):
-    """GET /api/dashboard/books-by-year/?bucket=1  (bucket=10 → ده‌ساله)"""
 
     def build(self, request, book_ids):
         try:
@@ -84,7 +75,7 @@ class BooksByYear(DashboardBaseView):
 
 
 class SeriesOverview(DashboardBaseView):
-    """GET /api/dashboard/series/?search=دهخدا&limit=all → مجموعه‌ها + کتاب‌های هر مجموعه"""
+    """GET /api/dashboard/series/?search=دهخدا&limit=all"""
 
     def build(self, request, book_ids):
         limit = selectors.parse_limit(request.query_params.get("limit"), default=None)

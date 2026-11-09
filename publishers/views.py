@@ -23,10 +23,7 @@ def publisher_queryset():
 
 
 class PublisherListCreate(ListMixin, CreateMixin, BulkDeleteMixin, APIView):
-    """
-    GET /api/publishers/?search=...&page=1&page_size=25&ordering=name
-    (برای combobox فرانت: ?search=...&page_size=20)
-    """
+
     response_helper = publisher_rh
     permission_classes = [MethodPermission]
     permission_by_method = PublisherListCreatePermissions
@@ -44,7 +41,6 @@ class PublisherListCreate(ListMixin, CreateMixin, BulkDeleteMixin, APIView):
 
 
 class PublisherRetrieveUpdateDelete(RetrieveMixin, UpdateMixin, DeleteMixin, APIView):
-    """حذف ناشر، کتاب‌هایش را حذف نمی‌کند؛ فقط ناشرِ آن کتاب‌ها خالی می‌شود (SET_NULL)."""
     response_helper = publisher_rh
     permission_classes = [MethodPermission]
     permission_by_method = PublisherRetrieveUpdateDeletePermissions
@@ -60,10 +56,6 @@ class PublisherRetrieveUpdateDelete(RetrieveMixin, UpdateMixin, DeleteMixin, API
 
 
 class PublisherImage(ImageUploadView):
-    """
-    POST   /api/publishers/<id>/image/   (multipart: image=<file>)
-    DELETE /api/publishers/<id>/image/
-    """
     model = Publisher
     response_helper = publisher_rh
     permission_classes = [MethodPermission]

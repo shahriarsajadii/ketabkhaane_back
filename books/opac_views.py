@@ -136,13 +136,7 @@ class SearchBookOpac(APIView):
 # جزئیات یک کتاب
 # =====================================================
 class GetBookByOpacId(APIView):
-    """
-    POST /api/books/get_by_opac_id/    { "opac_book_id": "5104023" }
 
-    خروجی data:
-        title, author, publication, physical_description, isbn, cataloging_status,
-        subjects, lcc, dewey, national_bibliography_number
-    """
 
     FIELD_MAPPING = {
         "سرشناسه": "main_entry",

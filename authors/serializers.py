@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from core.images import ImageUrlMixin
-
 from .models import Author
 
 
@@ -56,11 +55,10 @@ class AuthorBulkDeleteSerializer(serializers.Serializer):
     )
 
     def validate_items(self, authors):
-        # نویسنده برای کتاب اجباری است؛ پس نویسنده‌ی دارای کتاب حذف نمی‌شود
         used = [a.name for a in authors if a.books.exists()]
         if used:
             preview = "، ".join(used[:3]) + (" و ..." if len(used) > 3 else "")
             raise serializers.ValidationError(
-                f"این نویسنده‌ها کتاب دارند و حذف نمی‌شوند: {preview}. ابتدا کتاب‌هایشان را ویرایش یا حذف کنید."
+                f"این نویسنده ‌ها کتاب دارند و حذف نمی‌ شوند: {preview}. ابتدا کتاب ‌هایشان را ویرایش یا حذف کنید."
             )
         return authors

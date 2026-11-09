@@ -4,7 +4,6 @@ from .models import Publisher
 
 
 class PublisherFilter(django_filters.FilterSet):
-    # ?search= و ?name= هر دو جستجوی بخشی در نام ناشر هستند (search برای combobox فرانت)
     search = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
 

@@ -20,7 +20,6 @@ urlpatterns = [
     path("detail/<int:param>/", BookRetrieveUpdateDelete.as_view(), name="books.retrieve-update-delete"),
     path("<int:param>/image/", BookImage.as_view(), name="books.image"),
 
-    # مجموعه‌ها (مثلا دهخدا جلد ۱ تا ۲۰)
     path("series/", BookSeriesListCreate.as_view(), name="books.series.list-create"),
     path("series/detail/<int:param>/", BookSeriesRetrieveUpdateDelete.as_view(), name="books.series.retrieve-update-delete"),
 

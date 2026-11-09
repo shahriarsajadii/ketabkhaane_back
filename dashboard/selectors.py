@@ -1,8 +1,4 @@
-"""
-کوئری‌های داشبورد (فقط خواندن). هیچ منطق HTTP اینجا نیست؛ ویوها فقط این توابع را صدا می‌زنند.
 
-نکته: Book یک property به نام `count` دارد، برای همین در annotate ها از اسم `total` استفاده شده.
-"""
 from collections import defaultdict
 
 from django.db.models import Count, F, Prefetch, Q
@@ -16,9 +12,7 @@ from publishers.models import Publisher
 DEFAULT_TOP = 10
 
 
-# -----------------------------------------------------
-# فیلتر سراسری (برای کراس‌فیلترینگِ شبیه Power BI)
-# -----------------------------------------------------
+
 def _parse_ids(raw):
     if not raw:
         return None
@@ -82,13 +76,9 @@ def filtered_book_ids(filters):
 
 
 def _books_q(book_ids, field="books__id__in"):
-    """Q خالی اگر فیلتری نباشد، وگرنه محدود به book_ids."""
     return Q(**{field: book_ids}) if book_ids is not None else Q()
 
 
-# -----------------------------------------------------
-# helperها
-# -----------------------------------------------------
 def parse_limit(raw, default=DEFAULT_TOP):
     """
     ?limit=10   → ۱۰ مورد برتر
@@ -109,7 +99,6 @@ def parse_limit(raw, default=DEFAULT_TOP):
 
 
 def _top_n(queryset, limit, extra=()):
-    """queryset باید values('id', 'name', 'total', ...) داشته و مرتب شده باشد؛ extra = فیلدهای اضافه‌ی خروجی."""
     total_items = queryset.count()
     rows = queryset if limit is None else queryset[:limit]
     items = [
@@ -145,9 +134,6 @@ def summary(book_ids=None):
     }
 
 
-# -----------------------------------------------------
-# نمودارهای «N مورد برتر»
-# -----------------------------------------------------
 def books_by_author(limit, book_ids=None):
     qs = (
         Author.objects
@@ -194,19 +180,13 @@ def copies_by_book(limit, book_ids=None):
         .order_by("-total", "title", "id")
         .values("id", "name", "total", "volume_number")
     )
-    # volume_number برای تفکیک جلدهای هم‌نام (مثلا دهخدا ۱، ۲، ...)
+
     return _top_n(qs, limit, extra=("volume_number",))
 
 
-# -----------------------------------------------------
-# سال انتشار
-# -----------------------------------------------------
+
 def books_by_year(bucket=1, book_ids=None):
-    """
-    bucket=1  → تعداد کتاب در هر سال
-    bucket=10 → گروه‌بندی ده‌ساله (مثلا 1390–1399)
-    کتاب‌های بدون سال در `unknown` می‌آیند.
-    """
+
     bucket = max(int(bucket or 1), 1)
     base = Book.objects.all() if book_ids is None else Book.objects.filter(id__in=book_ids)
     rows = (
@@ -234,9 +214,6 @@ def books_by_year(bucket=1, book_ids=None):
     }
 
 
-# -----------------------------------------------------
-# پراکندگی نسخه‌ها در قفسه‌ها (آدرس = «قفسه-ردیف» مثل 01-05)
-# -----------------------------------------------------
 def copies_by_shelf(book_ids=None):
     copies_qs = BookCopy.objects.all() if book_ids is None else BookCopy.objects.filter(book_id__in=book_ids)
     rows = copies_qs.values("address").annotate(total=Count("id"))

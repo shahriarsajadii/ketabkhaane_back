@@ -1,8 +1,3 @@
-"""
-آدرس نسخه‌ها به شکل «قفسه-ردیف» ذخیره می‌شود؛ مثلا 01-05 یعنی قفسه ۰۱، ردیف ۰۵.
-
-این ماژول عمداً به Django وابسته نیست (مثل excel.py).
-"""
 import re
 
 _DIGIT_MAP = {
@@ -19,10 +14,6 @@ def format_address(shelf: int, row: int) -> str:
 
 
 def normalize_address(value, shelf_max: int = 50, row_max: int = 50) -> str:
-    """
-    «1-5»، «۰۱-۰۵» یا «01 - 05» را به شکل استاندارد «01-05» برمی‌گرداند.
-    اگر معتبر نباشد ValueError با پیام فارسی می‌دهد.
-    """
     text = str(value or "").strip().translate(_DIGIT_MAP)
     match = _ADDRESS_RE.match(text)
     if not match:

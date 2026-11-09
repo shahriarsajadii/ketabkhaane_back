@@ -6,6 +6,6 @@ from .models import Book
 
 @receiver(post_delete, sender=Book)
 def delete_book_image_file(sender, instance, **kwargs):
-    """با حذف کتاب (تکی یا گروهی) فایل عکسش هم از دیسک پاک شود."""
+    """با حذف کتاب فایل عکسش هم از دیسک پاک شود."""
     if instance.image:
         instance.image.delete(save=False)

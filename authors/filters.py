@@ -5,7 +5,6 @@ from .models import Author
 
 
 class AuthorFilter(django_filters.FilterSet):
-    # جستجوی کلی (برای combobox فرانت): نام یا توضیحات
     search = django_filters.CharFilter(method="filter_search")
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
     description = django_filters.CharFilter(field_name="description", lookup_expr="icontains")

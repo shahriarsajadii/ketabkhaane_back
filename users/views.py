@@ -34,10 +34,6 @@ from .serializers import (
 user_rh = ResponseHelper("کاربر", "کاربران")
 auth_rh = ResponseHelper("")
 
-
-# =====================================================
-# Auth
-# =====================================================
 class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
@@ -65,7 +61,6 @@ class LoginView(APIView):
         )
         return set_auth_cookies(response, str(refresh.access_token), str(refresh))
 
-
 class TokenRefreshView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -86,7 +81,6 @@ class TokenRefreshView(APIView):
 
         return set_auth_cookies(response, data["access"], data.get("refresh"))
 
-
 class LogoutView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -103,9 +97,6 @@ class LogoutView(APIView):
         return clear_auth_cookies(response)
 
 
-# =====================================================
-# پروفایل خود کاربر
-# =====================================================
 class MeView(APIView):
     permission_classes = [MethodPermission]
     permission_by_method = MePermissions
@@ -118,7 +109,6 @@ class MeView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return user_rh.success_update_response(data=UserSerializer(user).data)
-
 
 class ChangePasswordView(APIView):
     permission_classes = [MethodPermission]

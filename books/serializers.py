@@ -12,9 +12,6 @@ from .queries import book_queryset
 from .services import _get_or_create_categories, _get_or_create_named, _get_or_create_series, sync_copies
 
 
-# -------------------------------------------------
-# خواندن
-# -------------------------------------------------
 class CategoryMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -67,7 +64,6 @@ class BookSeriesBulkDeleteSerializer(serializers.Serializer):
 
 
 class BookCopySerializer(serializers.Serializer):
-    """نمایش یک نسخه: آدرس + وضعیت امانت."""
     id = serializers.IntegerField(read_only=True)
     address = serializers.CharField()
     is_loaned = serializers.BooleanField()
@@ -144,30 +140,7 @@ class BookDetailSerializer(BookListSerializer):
         return obj.created_by.name if obj.created_by else None
 
 
-# -------------------------------------------------
-# ساخت / ویرایش
-# -------------------------------------------------
 class BookCreateUpdateSerializer(serializers.ModelSerializer):
-    """
-    ورودی:
-        {
-          "title": "یادداشت‌های زیرزمینی",
-          "authors": [3, 7], "translator": "...",      # شناسه‌ی نویسنده‌ها (حداقل یکی)
-          "publisher": 2,                               # اختیاری؛ شناسه‌ی ناشر یا null
-          "count": 3,                                   # اختیاری؛ پیش‌فرض = تعداد آدرس‌ها (حداقل 1)
-          "addresses": ["01-05", "01-06", "02-10"],     # «قفسه-ردیف» (هرکدام ۱ تا ۵۰)، دقیقاً به تعداد نسخه‌ها
-          "categories": [1, 4],                         # اختیاری
-          "publish_year": 1398, "isbn": "", "note": ""
-        }
-    در PATCH: اگر addresses بیاید، کل لیست آدرس‌ها جایگزین می‌شود (به ترتیب).
-
-    موجودیت‌های جدید (مثلاً از کتابخانه‌ی ملی) با «نام» فرستاده می‌شوند و همزمان با ثبت کتاب
-    (در همان transaction) ساخته می‌شوند؛ اگر با همان نام در دیتابیس باشند، همان استفاده می‌شود:
-          "new_authors": ["ناصر کهریزه"],     # کنار authors (شناسه‌ها)
-          "new_publisher": "زانکو",           # فقط وقتی publisher (شناسه) نیامده
-          "new_categories": ["سه تار -- آموزش"],
-    """
-
     count = serializers.IntegerField(required=False, min_value=1, error_messages={
         "min_value": "تعداد باید حداقل ۱ باشد.",
         "invalid": "تعداد باید یک عدد صحیح باشد.",
@@ -185,8 +158,7 @@ class BookCreateUpdateSerializer(serializers.ModelSerializer):
             "not_a_list": "آدرس‌ها باید به‌صورت لیست ارسال شوند.",
         },
     )
-    # ورودی کامل‌تر هر نسخه (آدرس + وضعیت امانت)؛ اگر بیاید جای addresses را می‌گیرد.
-    # مثال: [{"address": "01-05", "is_loaned": true, "loaned_to": "علی رضایی"}, ...]
+
     copies = serializers.ListField(
         child=serializers.DictField(), required=False, allow_empty=False, write_only=True,
         error_messages={
@@ -220,7 +192,6 @@ class BookCreateUpdateSerializer(serializers.ModelSerializer):
             "not_a_list": "نویسنده‌ها باید به‌صورت لیست ارسال شوند.",
         },
     )
-    # --- موجودیت‌های جدید (با نام) ---
     new_authors = serializers.ListField(
         child=serializers.CharField(max_length=255, allow_blank=False, error_messages={
             "max_length": "نام نویسنده نباید بیشتر از ۲۵۵ کاراکتر باشد.",
@@ -273,7 +244,6 @@ class BookCreateUpdateSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _clean_names(names):
-        """فاصله‌های اضافی را می‌گیرد و تکراری‌ها (بدون حساسیت به حروف) را حذف می‌کند."""
         seen, result = set(), []
         for name in names or []:
             name = " ".join(str(name).split())
@@ -283,11 +253,6 @@ class BookCreateUpdateSerializer(serializers.ModelSerializer):
         return result
 
     def _resolve_new_entities(self, attrs):
-        """
-        نام‌های جدید را بدون ساختن چیزی بررسی می‌کند:
-          - اگر در دیتابیس بود → به همان لیست/فیلد اصلی اضافه می‌شود
-          - اگر نبود → در attrs می‌ماند تا بعد از ساخت کتاب (در create/update) ساخته شود
-        """
         instance = self.instance
 
         # ---- نویسنده‌ها ----
@@ -356,8 +321,7 @@ class BookCreateUpdateSerializer(serializers.ModelSerializer):
         if len(value) > max_copies:
             raise serializers.ValidationError(f"حداکثر {max_copies} نسخه از یک کتاب مجاز است.")
 
-        # هر آدرس باید «قفسه-ردیف» باشد (مثلا 01-05) و به شکل استاندارد ذخیره می‌شود.
-        # خطاها به‌صورت {index: [پیام]} برمی‌گردند تا فرم بداند کدام نسخه مشکل دارد.
+        # هر آدرس باید «قفسه-ردیف» باشه (مثلا 01-05) و به شکل استاندارد ذخیره میشه.
         normalized, errors = [], {}
         for index, item in enumerate(value):
             normalized.append(self._normalize_one_address(index, item, errors))

@@ -12,13 +12,6 @@ from .models import BookCopy, BookSeries
 
 
 def sync_copies(book, copies_data):
-    """
-    لیست نسخه‌های کتاب را با لیست جدید هماهنگ می‌کند (به ترتیب):
-    نسخه‌های موجود ویرایش می‌شوند، اضافه‌ها ساخته و مازادها حذف می‌شوند.
-
-    copies_data: لیستی از دیکشنری {"address": "...", "is_loaned": bool, "loaned_to": "..."}
-    (برای سازگاری با ورودی قدیمی، رشته‌ی ساده هم پذیرفته می‌شود و یعنی امانت داده نشده.)
-    """
     normalized = []
     for item in copies_data:
         if isinstance(item, dict):
@@ -63,7 +56,6 @@ def sync_copies(book, copies_data):
 
 
 def _get_or_create_series(name, user):
-    """مجموعه را با نام (بدون حساسیت به بزرگی/کوچکی حروف) پیدا یا می‌سازد."""
     name = " ".join((name or "").split())
     if not name:
         return None
@@ -89,7 +81,6 @@ def _get_or_create_categories(names, user):
 
 
 def _get_or_create_named(model, field, names, user, error_key, label):
-    """Author/Publisher را با نام (بدون حساسیت به بزرگی/کوچکی حروف) پیدا یا می‌سازد."""
     result = []
     for name in names:
         name = " ".join(name.split())
@@ -103,14 +94,6 @@ def _get_or_create_named(model, field, names, user, error_key, label):
 
 
 def import_books_from_excel(content: bytes, user, skip_invalid: bool = False) -> dict:
-    """
-    ردیف‌های فایل اکسل را با همان سریالایزر API اعتبارسنجی و ثبت می‌کند.
-
-    - skip_invalid=False (پیش‌فرض): اگر حتی یک ردیف خطا داشته باشد، هیچ‌چیز ثبت نمی‌شود.
-    - skip_invalid=True: ردیف‌های سالم ثبت و ردیف‌های خراب گزارش می‌شوند.
-
-    خروجی: {"total": n, "created": n, "failed": [{"row": 5, "title": "...", "errors": {...}}]}
-    """
     # import محلی تا بین serializers ↔ services چرخه‌ی import نشود
     from .serializers import BookCreateUpdateSerializer
 
@@ -129,7 +112,6 @@ def import_books_from_excel(content: bytes, user, skip_invalid: bool = False) ->
     with transaction.atomic():
         for row in rows:
             try:
-                # savepoint هر ردیف: خطای یک ردیف، ردیف‌های قبلی را خراب نمی‌کند
                 with transaction.atomic():
                     categories = _get_or_create_categories(row.category_names, user)
                     authors = _get_or_create_named(Author, "name", row.author_names, user, "authors", "نویسنده")
